@@ -137,13 +137,21 @@ export default function DashboardPage() {
                   : 'bg-white/3 border border-white/5'
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black text-white mx-auto mb-3 ${
-                p?.name?.[0] === 'H'
-                  ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
-                  : 'bg-gradient-to-br from-pink-500 to-rose-500'
-              }`}>
-                {p?.name?.[0] || '?'}
-              </div>
+              {p?.avatar_url ? (
+                <img
+                  src={p.avatar_url}
+                  alt={p.name}
+                  className="w-12 h-12 rounded-xl object-cover mx-auto mb-3"
+                />
+              ) : (
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black text-white mx-auto mb-3 ${
+                  p?.name?.[0] === 'H'
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                    : 'bg-gradient-to-br from-pink-500 to-rose-500'
+                }`}>
+                  {p?.name?.[0] || '?'}
+                </div>
+              )}
               <p className="text-white font-semibold text-sm">{p?.name || '---'}</p>
               <div className="flex items-center justify-center gap-1.5 mt-1">
                 <span className="text-2xl">{rank === 1 ? '🥇' : '🥈'}</span>
