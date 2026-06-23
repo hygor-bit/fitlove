@@ -62,7 +62,7 @@ export default function ConversationPage() {
 
     if (conv) {
       const otherId = conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
-      setOtherProfile(profileMap.get(otherId) || null)
+      setOtherProfile((profileMap.get(otherId) as Profile | undefined) || null)
     }
 
     if (msgs) setMessages(msgs)
