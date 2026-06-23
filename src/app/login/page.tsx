@@ -21,7 +21,7 @@ export default function LoginPage() {
     setLoading(true)
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
+      options: { shouldCreateUser: true, emailRedirectTo: undefined },
     })
     setLoading(false)
     if (error) { toast.error(error.message); return }
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 <div className="text-center mb-6">
                   <Mail className="w-8 h-8 text-pink-400 mx-auto mb-2" />
                   <h2 className="text-white font-bold text-lg">Entrar no FITLOVE</h2>
-                  <p className="text-white/40 text-sm mt-1">Enviaremos um codigo de acesso para seu email</p>
+                  <p className="text-white/40 text-sm mt-1">Enviaremos um link de acesso para seu email</p>
                 </div>
 
                 <form onSubmit={sendOtp} className="space-y-4">
@@ -117,7 +117,7 @@ export default function LoginPage() {
                     whileTap={{ scale: 0.98 }}
                     className="w-full love-gradient py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
                   >
-                    {loading ? 'Enviando...' : 'Enviar codigo'}
+                    {loading ? 'Enviando...' : 'Enviar link de acesso'}
                   </motion.button>
                 </form>
 
@@ -154,46 +154,23 @@ export default function LoginPage() {
                 <div className="text-center mb-6">
                   <ShieldCheck className="w-8 h-8 text-green-400 mx-auto mb-2" />
                   <h2 className="text-white font-bold text-lg">Verifique seu email</h2>
-                  <p className="text-white/40 text-sm mt-1">
-                    Enviamos um codigo de 6 digitos para
-                  </p>
-                  <p className="text-pink-400 text-sm font-medium">{email}</p>
+                  <p className="text-white/40 text-sm mt-1">Enviamos um link de acesso para</p>
+                  <p className="text-pink-400 text-sm font-medium mt-1">{email}</p>
+                  <p className="text-white/30 text-xs mt-3">Clique no link do email para entrar.<br/>Pode fechar essa aba.</p>
                 </div>
-
-                <form onSubmit={verifyOtp} className="space-y-4">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="000000"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    required
-                    autoFocus
-                    maxLength={6}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-white placeholder-white/20 text-2xl font-bold tracking-[0.5em] text-center focus:outline-none focus:border-pink-500/50 transition-colors"
-                  />
-                  <motion.button
-                    type="submit"
-                    disabled={loading || otp.length < 6}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full love-gradient py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-                  >
-                    {loading ? 'Verificando...' : 'Confirmar codigo'}
-                  </motion.button>
-                </form>
 
                 <button
                   onClick={() => { setStep('email'); setOtp('') }}
-                  className="w-full text-center text-white/30 text-sm mt-4 hover:text-white/50 transition-colors"
+                  className="w-full glass border border-white/10 py-3 rounded-xl text-white/50 text-sm hover:text-white hover:border-white/20 transition-all"
                 >
                   Usar outro email
                 </button>
 
                 <button
                   onClick={sendOtp}
-                  className="w-full text-center text-pink-400/70 text-sm mt-2 hover:text-pink-400 transition-colors"
+                  className="w-full text-center text-pink-400/70 text-sm mt-3 hover:text-pink-400 transition-colors"
                 >
-                  Reenviar codigo
+                  Reenviar link
                 </button>
               </motion.div>
             )}
