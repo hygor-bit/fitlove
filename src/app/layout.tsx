@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   title: "FITLOVE — Evoluindo juntos todos os dias",
   description: "A plataforma fitness premium para casais que evoluem juntos.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+    shortcut: "/favicon-32x32.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
