@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { User, Save, Target, Droplets, Flame, Camera } from 'lucide-react'
+import { User, Save, Target, Droplets, Flame, Camera, Heart, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Profile } from '@/types'
@@ -12,6 +12,7 @@ import type { Profile } from '@/types'
 export default function PerfilPage() {
   const supabase = createClient()
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [otherProfiles, setOtherProfiles] = useState<Profile[]>([])
   const [form, setForm] = useState({
     name: '', objective: '',
     weight_current: '', weight_goal: '',
@@ -25,7 +26,10 @@ export default function PerfilPage() {
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
+    const [{ data }, { data: allProfiles }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('user_id', user.id).single(),
+      supabase.from('profiles').select('*').neq('user_id', user.id),
+    ])
     if (data) {
       setProfile(data)
       setForm({
@@ -43,8 +47,17 @@ export default function PerfilPage() {
       const { data: { user: u } } = await supabase.auth.getUser()
       setForm(f => ({ ...f, name: u?.email?.split('@')[0] || '' }))
     }
+    setOtherProfiles(allProfiles || [])
     setLoading(false)
   }, [supabase])
+
+  async function setPartner(partnerId: string | null) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('profiles').upsert({ user_id: user.id, partner_id: partnerId }, { onConflict: 'user_id' })
+    toast.success(partnerId ? 'Parceiro vinculado!' : 'Parceiro desvinculado')
+    load()
+  }
 
   useEffect(() => { load() }, [load])
 
@@ -149,6 +162,55 @@ export default function PerfilPage() {
             </div>
           )}
         </div>
+      </motion.div>
+
+      {/* Partner */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass rounded-2xl p-5 border border-pink-500/10 space-y-3">
+        <p className="text-white/40 text-xs font-medium flex items-center gap-1.5">
+          <Heart className="w-3.5 h-3.5 text-pink-400" />
+          MEU PARCEIRO(A)
+        </p>
+        {profile?.partner_id ? (
+          <div className="flex items-center gap-3">
+            {(() => {
+              const partner = otherProfiles.find(p => p.user_id === profile.partner_id)
+              return partner ? (
+                <>
+                  {partner.avatar_url
+                    ? <img src={partner.avatar_url} className="w-10 h-10 rounded-xl object-cover" alt="" />
+                    : <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold">{partner.name?.[0]}</div>
+                  }
+                  <div className="flex-1">
+                    <p className="text-white font-semibold text-sm">{partner.name}</p>
+                    <p className="text-white/40 text-xs">{partner.objective || 'Atleta FITLOVE'}</p>
+                  </div>
+                  <button onClick={() => setPartner(null)} className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60">
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : <p className="text-white/30 text-sm">Parceiro nao encontrado</p>
+            })()}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-white/30 text-xs">Escolha quem e seu parceiro no FITLOVE:</p>
+            {otherProfiles.length === 0 && <p className="text-white/20 text-xs">Nenhum outro usuario cadastrado ainda.</p>}
+            {otherProfiles.map(p => (
+              <button key={p.user_id} onClick={() => setPartner(p.user_id)}
+                className="w-full flex items-center gap-3 p-3 glass rounded-xl border border-white/5 hover:border-pink-500/20 transition-all text-left">
+                {p.avatar_url
+                  ? <img src={p.avatar_url} className="w-9 h-9 rounded-xl object-cover" alt="" />
+                  : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">{p.name?.[0]}</div>
+                }
+                <div className="flex-1">
+                  <p className="text-white text-sm font-medium">{p.name}</p>
+                  <p className="text-white/30 text-xs">{p.objective || 'Atleta FITLOVE'}</p>
+                </div>
+                <Heart className="w-4 h-4 text-pink-400/40" />
+              </button>
+            ))}
+          </div>
+        )}
       </motion.div>
 
       <Section title="INFORMACOES PESSOAIS" icon={<User className="w-4 h-4 text-pink-400" />}>

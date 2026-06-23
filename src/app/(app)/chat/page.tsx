@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, Search, Plus, X, Check, UserPlus } from 'lucide-react'
+import { MessageCircle, Search, Plus, X, Check, UserPlus, MoreVertical, Trash2, BellOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -54,6 +54,7 @@ export default function ChatPage() {
   const [searchResult, setSearchResult] = useState<Profile | null>(null)
   const [searching, setSearching] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [menuConvId, setMenuConvId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -166,6 +167,22 @@ export default function ChatPage() {
     load()
   }
 
+  async function deleteConversation(convId: string) {
+    await supabase.from('messages').delete().eq('conversation_id', convId)
+    await supabase.from('conversations').delete().eq('id', convId)
+    setMenuConvId(null)
+    toast.success('Conversa excluida')
+    load()
+  }
+
+  async function blockUser(otherUserId: string, convId: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('blocked_users').insert({ user_id: user.id, blocked_user_id: otherUserId }).throwOnError()
+    await deleteConversation(convId)
+    toast.success('Usuario bloqueado')
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="w-8 h-8 love-gradient rounded-full animate-pulse" />
@@ -233,27 +250,60 @@ export default function ChatPage() {
           </div>
         )}
         {conversations.map((conv, i) => (
-          <motion.button
+          <motion.div
             key={conv.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            onClick={() => router.push(`/chat/${conv.id}`)}
-            className="w-full glass rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all text-left"
+            className="relative"
           >
-            <Avatar profile={conv.other_user} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <p className="text-white font-semibold text-sm">{conv.other_user?.name || 'Usuario'}</p>
-                <span className="text-white/30 text-xs">
-                  {formatDistanceToNow(new Date(conv.last_message_at), { locale: ptBR, addSuffix: true })}
-                </span>
+            <button
+              onClick={() => router.push(`/chat/${conv.id}`)}
+              className="w-full glass rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all text-left"
+            >
+              <Avatar profile={conv.other_user} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-white font-semibold text-sm">{conv.other_user?.name || 'Usuario'}</p>
+                  <span className="text-white/30 text-xs">
+                    {formatDistanceToNow(new Date(conv.last_message_at), { locale: ptBR, addSuffix: true })}
+                  </span>
+                </div>
+                <p className="text-white/40 text-xs truncate">
+                  {conv.last_message || 'Iniciar conversa...'}
+                </p>
               </div>
-              <p className="text-white/40 text-xs truncate">
-                {conv.last_message || 'Iniciar conversa...'}
-              </p>
-            </div>
-          </motion.button>
+            </button>
+            {/* Menu 3 pontos */}
+            <button
+              onClick={e => { e.stopPropagation(); setMenuConvId(menuConvId === conv.id ? null : conv.id) }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-white/20 hover:text-white/60 rounded-xl hover:bg-white/5"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {menuConvId === conv.id && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute right-3 top-12 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl"
+              >
+                <button
+                  onClick={() => deleteConversation(conv.id)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 w-full text-left"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Excluir conversa
+                </button>
+                <button
+                  onClick={() => conv.other_user && blockUser(conv.other_user.user_id, conv.id)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-white/50 hover:bg-white/5 w-full text-left"
+                >
+                  <BellOff className="w-4 h-4" />
+                  Bloquear usuario
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
         ))}
       </div>
 

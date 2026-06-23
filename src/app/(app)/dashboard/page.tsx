@@ -48,9 +48,11 @@ export default function DashboardPage() {
       supabase.from('daily_habits').select('*').eq('date', today),
     ])
 
+    console.log('today:', today, 'habits:', habits)
+
     if (profiles) {
       const me = profiles.find((p: Profile) => p.user_id === user.id)
-      const partner = profiles.find((p: Profile) => p.user_id !== user.id)
+      const partner = profiles.find((p: Profile) => p.user_id === me?.partner_id)
       setProfile(me || null)
       setPartnerProfile(partner || null)
     }

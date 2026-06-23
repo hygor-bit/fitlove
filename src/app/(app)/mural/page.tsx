@@ -30,8 +30,10 @@ export default function MuralPage() {
       supabase.from('motivation_messages').select(`*, from_profile:profiles!motivation_messages_from_user_id_fkey(*)`).order('created_at', { ascending: false }),
     ])
     if (profiles) {
-      setMyProfile(profiles.find((p: Profile) => p.user_id === user.id) || null)
-      setPartnerProfile(profiles.find((p: Profile) => p.user_id !== user.id) || null)
+      const me = profiles.find((p: Profile) => p.user_id === user.id) || null
+      const partner = profiles.find((p: Profile) => p.user_id === me?.partner_id) || null
+      setMyProfile(me)
+      setPartnerProfile(partner)
     }
     if (msgs) setMessages(msgs)
     setLoading(false)
