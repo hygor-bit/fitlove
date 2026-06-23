@@ -2,9 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { MessageCircle, Search, Plus, X, Check, UserPlus, MoreVertical, Trash2, BellOff } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, Search, Plus, X, Check, UserPlus, MoreVertical, Trash2, BellOff, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -19,6 +19,7 @@ interface Conversation {
   last_message: string | null
   last_message_at: string
   other_user?: Profile
+  nickname?: string
 }
 
 interface FriendRequest {
@@ -46,6 +47,7 @@ function Avatar({ profile, size = 'md' }: { profile?: Profile; size?: 'sm' | 'md
 export default function ChatPage() {
   const supabase = createClient()
   const router = useRouter()
+  const [myId, setMyId] = useState<string>('')
   const [myProfile, setMyProfile] = useState<Profile | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
@@ -55,35 +57,46 @@ export default function ChatPage() {
   const [searching, setSearching] = useState(false)
   const [loading, setLoading] = useState(true)
   const [menuConvId, setMenuConvId] = useState<string | null>(null)
+  // Nickname editing
+  const [editingNick, setEditingNick] = useState<string | null>(null) // conv id
+  const [nickValue, setNickValue] = useState('')
+  const nickInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    setMyId(user.id)
 
-    const [{ data: prof }, { data: convs }, { data: reqs }, { data: profiles }] = await Promise.all([
+    const [{ data: prof }, { data: convs }, { data: reqs }, { data: profiles }, { data: nicknames }] = await Promise.all([
       supabase.from('profiles').select('*').eq('user_id', user.id).single(),
       supabase.from('conversations').select('*')
         .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false }),
       supabase.from('friend_requests').select('*').eq('to_user_id', user.id).eq('status', 'pending'),
       supabase.from('profiles').select('*'),
+      supabase.from('contact_nicknames').select('*').eq('user_id', user.id),
     ])
 
     if (prof) setMyProfile(prof)
 
     const profileMap = new Map((profiles || []).map((p: Profile) => [p.user_id, p]))
+    const nickMap = new Map((nicknames || []).map((n: { contact_user_id: string; nickname: string }) => [n.contact_user_id, n.nickname]))
 
     if (convs) {
-      setConversations(convs.map((c: Conversation) => ({
-        ...c,
-        other_user: profileMap.get(c.participant1_id === user.id ? c.participant2_id : c.participant1_id),
-      })))
+      setConversations(convs.map((c: Conversation) => {
+        const otherId = c.participant1_id === user.id ? c.participant2_id : c.participant1_id
+        return {
+          ...c,
+          other_user: profileMap.get(otherId) as Profile | undefined,
+          nickname: nickMap.get(otherId),
+        }
+      }))
     }
 
     if (reqs) {
       setRequests(reqs.map((r: FriendRequest) => ({
         ...r,
-        from_profile: profileMap.get(r.from_user_id),
+        from_profile: profileMap.get(r.from_user_id) as Profile | undefined,
       })))
     }
 
@@ -99,17 +112,39 @@ export default function ChatPage() {
     return () => { supabase.removeChannel(ch) }
   }, [load, supabase])
 
+  useEffect(() => {
+    if (editingNick) nickInputRef.current?.focus()
+  }, [editingNick])
+
+  async function saveNickname(conv: Conversation) {
+    const otherId = conv.participant1_id === myId ? conv.participant2_id : conv.participant1_id
+    const trimmed = nickValue.trim()
+    if (!trimmed) {
+      await supabase.from('contact_nicknames').delete().eq('user_id', myId).eq('contact_user_id', otherId)
+      toast.success('Apelido removido')
+    } else {
+      await supabase.from('contact_nicknames').upsert({ user_id: myId, contact_user_id: otherId, nickname: trimmed })
+      toast.success('Apelido salvo!')
+    }
+    setEditingNick(null)
+    load()
+  }
+
+  function startEditNick(conv: Conversation) {
+    setEditingNick(conv.id)
+    setNickValue(conv.nickname || conv.other_user?.name || '')
+    setMenuConvId(null)
+  }
+
   async function searchUser() {
     if (!searchEmail.trim()) return
     setSearching(true)
     setSearchResult(null)
     const { data } = await supabase
-      .from('profiles')
-      .select('*')
+      .from('profiles').select('*')
       .ilike('name', `%${searchEmail}%`)
       .neq('user_id', myProfile?.user_id || '')
-      .limit(1)
-      .single()
+      .limit(1).single()
     setSearching(false)
     if (data) setSearchResult(data)
     else toast.error('Usuario nao encontrado')
@@ -118,45 +153,22 @@ export default function ChatPage() {
   async function sendRequest(toUserId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
-    // Check if conversation already exists
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('id')
+    const { data: existing } = await supabase.from('conversations').select('id')
       .or(`and(participant1_id.eq.${user.id},participant2_id.eq.${toUserId}),and(participant1_id.eq.${toUserId},participant2_id.eq.${user.id})`)
       .single()
-
-    if (existing) {
-      router.push(`/chat/${existing.id}`)
-      return
-    }
-
-    const { error } = await supabase.from('friend_requests').insert({
-      from_user_id: user.id,
-      to_user_id: toUserId,
-    })
-
-    if (error && error.code !== '23505') {
-      toast.error('Erro ao enviar solicitacao')
-    } else {
-      toast.success('Solicitacao enviada!')
-      setShowAddUser(false)
-      setSearchEmail('')
-      setSearchResult(null)
-    }
+    if (existing) { router.push(`/chat/${existing.id}`); return }
+    const { error } = await supabase.from('friend_requests').insert({ from_user_id: user.id, to_user_id: toUserId })
+    if (error && error.code !== '23505') toast.error('Erro ao enviar solicitacao')
+    else { toast.success('Solicitacao enviada!'); setShowAddUser(false); setSearchEmail(''); setSearchResult(null) }
   }
 
   async function acceptRequest(req: FriendRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
     await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', req.id)
-
     const { data: conv } = await supabase.from('conversations').insert({
-      participant1_id: req.from_user_id,
-      participant2_id: user.id,
+      participant1_id: req.from_user_id, participant2_id: user.id,
     }).select().single()
-
     toast.success('Conversa iniciada!')
     load()
     if (conv) router.push(`/chat/${conv.id}`)
@@ -178,9 +190,12 @@ export default function ChatPage() {
   async function blockUser(otherUserId: string, convId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from('blocked_users').insert({ user_id: user.id, blocked_user_id: otherUserId }).throwOnError()
-    await deleteConversation(convId)
+    await supabase.from('blocked_users').insert({ user_id: user.id, blocked_user_id: otherUserId })
+    await supabase.from('messages').delete().eq('conversation_id', convId)
+    await supabase.from('conversations').delete().eq('id', convId)
+    setMenuConvId(null)
     toast.success('Usuario bloqueado')
+    load()
   }
 
   if (loading) return (
@@ -190,17 +205,13 @@ export default function ChatPage() {
   )
 
   return (
-    <div className="max-w-lg mx-auto space-y-4">
+    <div className="max-w-lg mx-auto space-y-4" onClick={() => { setMenuConvId(null) }}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-white">Chat</h1>
           <p className="text-white/40 text-sm">Suas conversas</p>
         </div>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowAddUser(true)}
-          className="love-gradient p-2.5 rounded-xl text-white"
-        >
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddUser(true)} className="love-gradient p-2.5 rounded-xl text-white">
           <UserPlus className="w-5 h-5" />
         </motion.button>
       </div>
@@ -210,28 +221,18 @@ export default function ChatPage() {
         <div className="space-y-2">
           <p className="text-white/40 text-xs font-medium">SOLICITACOES ({requests.length})</p>
           {requests.map(req => (
-            <motion.div
-              key={req.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass rounded-2xl p-4 border border-pink-500/20 flex items-center gap-3"
-            >
+            <motion.div key={req.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="glass rounded-2xl p-4 border border-pink-500/20 flex items-center gap-3">
               <Avatar profile={req.from_profile} />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium text-sm">{req.from_profile?.name || 'Usuario'}</p>
                 <p className="text-white/40 text-xs">Quer conversar com voce</p>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => acceptRequest(req)}
-                  className="w-8 h-8 bg-green-500/20 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 hover:bg-green-500/30"
-                >
+                <button onClick={() => acceptRequest(req)} className="w-8 h-8 bg-green-500/20 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 hover:bg-green-500/30">
                   <Check className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => rejectRequest(req.id)}
-                  className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:bg-white/10"
-                >
+                <button onClick={() => rejectRequest(req.id)} className="w-8 h-8 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:bg-white/10">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -249,118 +250,114 @@ export default function ChatPage() {
             <p className="text-xs mt-1">Clique em + para adicionar alguem</p>
           </div>
         )}
-        {conversations.map((conv, i) => (
-          <motion.div
-            key={conv.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="relative"
-          >
-            <button
-              onClick={() => router.push(`/chat/${conv.id}`)}
-              className="w-full glass rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all text-left"
-            >
-              <Avatar profile={conv.other_user} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="text-white font-semibold text-sm">{conv.other_user?.name || 'Usuario'}</p>
-                  <span className="text-white/30 text-xs">
-                    {formatDistanceToNow(new Date(conv.last_message_at), { locale: ptBR, addSuffix: true })}
-                  </span>
+        {conversations.map((conv, i) => {
+          const displayName = conv.nickname || conv.other_user?.name || 'Usuario'
+          return (
+            <motion.div key={conv.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }} className="relative" onClick={e => e.stopPropagation()}>
+
+              {/* Nickname edit inline */}
+              <AnimatePresence>
+                {editingNick === conv.id && (
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                    className="mb-1 flex items-center gap-2 px-1">
+                    <input
+                      ref={nickInputRef}
+                      value={nickValue}
+                      onChange={e => setNickValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveNickname(conv); if (e.key === 'Escape') setEditingNick(null) }}
+                      placeholder="Apelido (deixe vazio para remover)"
+                      className="flex-1 bg-white/5 border border-pink-500/30 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-pink-500/60 placeholder-white/20"
+                    />
+                    <button onClick={() => saveNickname(conv)} className="love-gradient px-3 py-2 rounded-xl text-white text-xs font-medium">Salvar</button>
+                    <button onClick={() => setEditingNick(null)} className="text-white/30 hover:text-white/60 p-1"><X className="w-4 h-4" /></button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button onClick={() => router.push(`/chat/${conv.id}`)}
+                className="w-full glass rounded-2xl p-4 border border-white/5 flex items-center gap-3 hover:border-white/10 transition-all text-left">
+                <Avatar profile={conv.other_user} />
+                <div className="flex-1 min-w-0 pr-6">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className="text-white font-semibold text-sm truncate">{displayName}</p>
+                      {conv.nickname && (
+                        <span className="text-white/25 text-[10px] truncate hidden sm:block">({conv.other_user?.name})</span>
+                      )}
+                    </div>
+                    <span className="text-white/30 text-xs flex-shrink-0 ml-2">
+                      {formatDistanceToNow(new Date(conv.last_message_at), { locale: ptBR, addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className="text-white/40 text-xs truncate">{conv.last_message || 'Iniciar conversa...'}</p>
                 </div>
-                <p className="text-white/40 text-xs truncate">
-                  {conv.last_message || 'Iniciar conversa...'}
-                </p>
-              </div>
-            </button>
-            {/* Menu 3 pontos */}
-            <button
-              onClick={e => { e.stopPropagation(); setMenuConvId(menuConvId === conv.id ? null : conv.id) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-white/20 hover:text-white/60 rounded-xl hover:bg-white/5"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            {menuConvId === conv.id && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="absolute right-3 top-12 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl"
-              >
-                <button
-                  onClick={() => deleteConversation(conv.id)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 w-full text-left"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Excluir conversa
-                </button>
-                <button
-                  onClick={() => conv.other_user && blockUser(conv.other_user.user_id, conv.id)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-white/50 hover:bg-white/5 w-full text-left"
-                >
-                  <BellOff className="w-4 h-4" />
-                  Bloquear usuario
-                </button>
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
+              </button>
+
+              {/* Menu 3 pontos */}
+              <button onClick={e => { e.stopPropagation(); setMenuConvId(menuConvId === conv.id ? null : conv.id); setEditingNick(null) }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-white/20 hover:text-white/60 rounded-xl hover:bg-white/5">
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {menuConvId === conv.id && (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                  className="absolute right-3 top-12 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl min-w-[180px]">
+                  <button onClick={() => startEditNick(conv)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:bg-white/5 w-full text-left">
+                    <Pencil className="w-4 h-4" />
+                    Definir apelido
+                  </button>
+                  <button onClick={() => deleteConversation(conv.id)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 w-full text-left">
+                    <Trash2 className="w-4 h-4" />
+                    Excluir conversa
+                  </button>
+                  <button onClick={() => conv.other_user && blockUser(conv.other_user.user_id, conv.id)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-white/40 hover:bg-white/5 w-full text-left border-t border-white/5">
+                    <BellOff className="w-4 h-4" />
+                    Bloquear usuario
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          )
+        })}
       </div>
 
       {/* Modal adicionar usuario */}
       {showAddUser && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-4"
-          onClick={e => e.target === e.currentTarget && setShowAddUser(false)}
-        >
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6"
-          >
+          onClick={e => e.target === e.currentTarget && setShowAddUser(false)}>
+          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+            className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-white font-bold">Nova conversa</h2>
-              <button onClick={() => setShowAddUser(false)} className="text-white/40 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => setShowAddUser(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="flex gap-2 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input
-                  placeholder="Buscar por nome..."
-                  value={searchEmail}
-                  onChange={e => setSearchEmail(e.target.value)}
+                <input placeholder="Buscar por nome..." value={searchEmail} onChange={e => setSearchEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && searchUser()}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50"
-                />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
               </div>
-              <button
-                onClick={searchUser}
-                disabled={searching}
-                className="love-gradient px-4 rounded-xl text-white text-sm font-medium disabled:opacity-50"
-              >
+              <button onClick={searchUser} disabled={searching}
+                className="love-gradient px-4 rounded-xl text-white text-sm font-medium disabled:opacity-50">
                 {searching ? '...' : 'Buscar'}
               </button>
             </div>
-
             {searchResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 glass rounded-xl border border-white/10"
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 p-4 glass rounded-xl border border-white/10">
                 <Avatar profile={searchResult} size="lg" />
                 <div className="flex-1">
                   <p className="text-white font-semibold">{searchResult.name}</p>
                   <p className="text-white/40 text-xs">{searchResult.objective || 'Atleta FITLOVE'}</p>
                 </div>
-                <button
-                  onClick={() => sendRequest(searchResult.user_id)}
-                  className="love-gradient px-3 py-2 rounded-xl text-white text-xs font-medium flex items-center gap-1.5"
-                >
+                <button onClick={() => sendRequest(searchResult.user_id)}
+                  className="love-gradient px-3 py-2 rounded-xl text-white text-xs font-medium flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5" />
                   Conversar
                 </button>

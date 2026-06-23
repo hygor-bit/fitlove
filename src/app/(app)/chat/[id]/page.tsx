@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Send, Image, Video, X, CheckCheck, Check } from 'lucide-react'
+import { ArrowLeft, Send, Image, Video, X, CheckCheck, Check, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import { format } from 'date-fns'
@@ -61,6 +61,9 @@ export default function ConversationPage() {
   const [myId, setMyId] = useState<string>('')
   const [myProfile, setMyProfile] = useState<Profile | null>(null)
   const [otherProfile, setOtherProfile] = useState<Profile | null>(null)
+  const [nickname, setNickname] = useState<string>('')
+  const [editingNick, setEditingNick] = useState(false)
+  const [nickValue, setNickValue] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -70,6 +73,7 @@ export default function ConversationPage() {
   const [uploading, setUploading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const nickInputRef = useRef<HTMLInputElement>(null)
   const { notify } = useNotifications()
 
   const markRead = useCallback(async (userId: string) => {
@@ -95,9 +99,16 @@ export default function ConversationPage() {
     const me = profileMap.get(user.id) as Profile | undefined
     if (me) setMyProfile(me)
 
+    let otherId = ''
     if (conv) {
-      const otherId = conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
+      otherId = conv.participant1_id === user.id ? conv.participant2_id : conv.participant1_id
       setOtherProfile((profileMap.get(otherId) as Profile | undefined) || null)
+    }
+
+    if (otherId) {
+      const { data: nick } = await supabase.from('contact_nicknames')
+        .select('nickname').eq('user_id', user.id).eq('contact_user_id', otherId).single()
+      setNickname(nick?.nickname || '')
     }
 
     if (msgs) setMessages(msgs)
@@ -144,6 +155,19 @@ export default function ConversationPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: messages.length > 10 ? 'smooth' : 'instant' })
   }, [messages])
+
+  async function saveNickname() {
+    if (!otherProfile) return
+    const trimmed = nickValue.trim()
+    if (!trimmed) {
+      await supabase.from('contact_nicknames').delete().eq('user_id', myId).eq('contact_user_id', otherProfile.user_id)
+      setNickname('')
+    } else {
+      await supabase.from('contact_nicknames').upsert({ user_id: myId, contact_user_id: otherProfile.user_id, nickname: trimmed })
+      setNickname(trimmed)
+    }
+    setEditingNick(false)
+  }
 
   function pickMedia(e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') {
     const file = e.target.files?.[0]
@@ -245,12 +269,35 @@ export default function ConversationPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         {otherProfile?.avatar_url
-          ? <img src={otherProfile.avatar_url} className="w-9 h-9 rounded-xl object-cover" alt="" />
-          : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">{otherProfile?.name?.[0]}</div>
+          ? <img src={otherProfile.avatar_url} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" alt="" />
+          : <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{otherProfile?.name?.[0]}</div>
         }
-        <div>
-          <p className="text-white font-semibold text-sm">{otherProfile?.name || 'Usuario'}</p>
-          <p className="text-white/30 text-xs">{otherProfile?.objective || 'Atleta FITLOVE'}</p>
+        <div className="flex-1 min-w-0">
+          {editingNick ? (
+            <div className="flex items-center gap-2">
+              <input
+                ref={nickInputRef}
+                autoFocus
+                value={nickValue}
+                onChange={e => setNickValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveNickname(); if (e.key === 'Escape') setEditingNick(false) }}
+                placeholder="Apelido..."
+                className="flex-1 bg-white/10 border border-pink-500/40 rounded-lg px-2 py-1 text-white text-sm focus:outline-none min-w-0"
+              />
+              <button onClick={saveNickname} className="text-pink-400 text-xs font-medium hover:text-pink-300">Salvar</button>
+              <button onClick={() => setEditingNick(false)} className="text-white/30 hover:text-white/60"><X className="w-3.5 h-3.5" /></button>
+            </div>
+          ) : (
+            <button onClick={() => { setEditingNick(true); setNickValue(nickname || otherProfile?.name || '') }}
+              className="flex items-center gap-1.5 group text-left">
+              <p className="text-white font-semibold text-sm truncate">
+                {nickname || otherProfile?.name || 'Usuario'}
+              </p>
+              <Pencil className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" />
+            </button>
+          )}
+          {nickname && <p className="text-white/20 text-[10px]">{otherProfile?.name}</p>}
+          {!nickname && <p className="text-white/30 text-xs truncate">{otherProfile?.objective || 'Atleta FITLOVE'}</p>}
         </div>
       </div>
 
