@@ -111,13 +111,16 @@ export default function MuralPage() {
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 3, repeat: Infinity }}
-              className={`w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-xl font-black text-white ${
-                partnerProfile.name?.[0] === 'J'
-                  ? 'from-pink-500 to-rose-500'
-                  : 'from-blue-500 to-cyan-500'
-              }`}
             >
-              {partnerProfile.name?.[0]}
+              {partnerProfile.avatar_url ? (
+                <img src={partnerProfile.avatar_url} alt="" className="w-14 h-14 rounded-2xl object-cover" />
+              ) : (
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-xl font-black text-white ${
+                  partnerProfile.name?.[0] === 'J' ? 'from-pink-500 to-rose-500' : 'from-blue-500 to-cyan-500'
+                }`}>
+                  {partnerProfile.name?.[0]}
+                </div>
+              )}
             </motion.div>
             <div>
               <p className="text-white font-bold">{partnerProfile.name}</p>
