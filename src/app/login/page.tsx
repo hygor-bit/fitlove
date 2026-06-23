@@ -116,12 +116,12 @@ export default function LoginPage() {
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50 [&:-webkit-autofill]:!bg-transparent [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![-webkit-text-fill-color:white]" />
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input type={showPwd ? 'text' : 'password'} placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} required
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50 [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![-webkit-text-fill-color:white]" />
                     <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
                       {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -166,12 +166,12 @@ export default function LoginPage() {
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50 [&:-webkit-autofill]:!bg-transparent [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![-webkit-text-fill-color:white]" />
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input type={showPwd ? 'text' : 'password'} placeholder="Crie uma senha" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50 [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![-webkit-text-fill-color:white]" />
                     <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
                       {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -196,7 +196,7 @@ export default function LoginPage() {
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50" />
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/30 text-sm focus:outline-none focus:border-pink-500/50 [&:-webkit-autofill]:!bg-transparent [&:-webkit-autofill]:![box-shadow:0_0_0_1000px_rgba(255,255,255,0.05)_inset] [&:-webkit-autofill]:![-webkit-text-fill-color:white]" />
                   </div>
                   <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
                     className="w-full love-gradient py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-50">
