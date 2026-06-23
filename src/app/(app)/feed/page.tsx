@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useNotifications } from '@/hooks/useNotifications'
 import type { Post, Comment, Profile } from '@/types'
 
 function Avatar({ profile, size = 'md' }: { profile?: Profile; size?: 'sm' | 'md' }) {
@@ -39,6 +40,7 @@ export default function FeedPage() {
   const [newComments, setNewComments] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [posting, setPosting] = useState(false)
+  const { notify } = useNotifications()
 
   const load = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -72,10 +74,21 @@ export default function FeedPage() {
   useEffect(() => {
     load()
     const ch = supabase.channel('feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, load)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload: { new: Post }) => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && payload.new.user_id !== user.id) {
+          const { data: prof } = await supabase.from('profiles').select('name').eq('user_id', payload.new.user_id).single()
+          notify(
+            `${(prof as { name?: string } | null)?.name || 'Alguem'} publicou no Feed`,
+            payload.new.content?.slice(0, 80) || 'Nova publicacao',
+          )
+        }
+        load()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, load)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [load, supabase])
+  }, [load, supabase, notify])
 
   function pickImage(file: File) {
     setImageFile(file)

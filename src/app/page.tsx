@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Heart, TrendingUp, Droplets, Dumbbell, Users, Star, ChevronRight, Flame, Trophy, MessageCircle } from 'lucide-react'
+import { Heart, TrendingUp, Droplets, Dumbbell, ChevronRight, Flame, Trophy, MessageCircle } from 'lucide-react'
 
 const features = [
   {
@@ -134,40 +134,6 @@ export default function LandingPage() {
           </div>
         </motion.div>
 
-        {/* Couple avatars preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="mt-20 flex justify-center gap-6"
-        >
-          {[
-            { letter: 'H', name: 'Hygor', score: 40, color: 'from-blue-500 to-cyan-500' },
-            { letter: 'J', name: 'Júlia', score: 35, color: 'from-pink-500 to-rose-500' },
-          ].map((user, i) => (
-            <motion.div
-              key={user.letter}
-              className="glass rounded-2xl p-6 flex flex-col items-center gap-3 w-36"
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 4, repeat: Infinity, delay: i * 2 }}
-            >
-              <div className={`w-16 h-16 bg-gradient-to-br ${user.color} rounded-2xl flex items-center justify-center text-2xl font-black text-white`}>
-                {user.letter}
-              </div>
-              <div className="text-center">
-                <p className="text-white font-semibold text-sm">{user.name}</p>
-                <p className="text-white/40 text-xs">{user.score} pts hoje</p>
-              </div>
-              <div className="flex items-center gap-1 text-yellow-400 text-xs">
-                <Star className="w-3 h-3 fill-yellow-400" />
-                <span>7 dias 🔥</span>
-              </div>
-            </motion.div>
-          ))}
-          <div className="flex items-center self-center">
-            <Heart className="w-8 h-8 text-pink-500 fill-pink-500 float" />
-          </div>
-        </motion.div>
       </section>
 
       {/* Stats */}

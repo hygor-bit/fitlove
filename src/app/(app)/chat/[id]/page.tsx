@@ -10,6 +10,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
+import { useNotifications } from '@/hooks/useNotifications'
 import type { Profile } from '@/types'
 
 interface Message {
@@ -69,6 +70,7 @@ export default function ConversationPage() {
   const [uploading, setUploading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { notify } = useNotifications()
 
   const markRead = useCallback(async (userId: string) => {
     await supabase.from('messages')
@@ -118,7 +120,13 @@ export default function ConversationPage() {
         })
         void supabase.auth.getUser().then((res: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
           const u = res.data.user
-          if (u && msg.sender_id !== u.id) markRead(u.id)
+          if (u && msg.sender_id !== u.id) {
+            markRead(u.id)
+            notify(
+              otherProfile?.name || 'Nova mensagem',
+              msg.content || (msg.image_url ? 'Enviou uma foto' : 'Enviou um video'),
+            )
+          }
         })
       })
       .on('postgres_changes', {
