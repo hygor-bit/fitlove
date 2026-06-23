@@ -110,22 +110,22 @@ export default function ConversationPage() {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${convId}`,
-      }, payload => {
-        const msg = payload.new as Message
+      }, (payload: { new: Message }) => {
+        const msg = payload.new
         setMessages(prev => {
           if (prev.find(m => m.id === msg.id)) return prev
           return [...prev, msg]
         })
-        // Mark read if it's from the other person
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user && msg.sender_id !== user.id) markRead(user.id)
+        void supabase.auth.getUser().then((res: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
+          const u = res.data.user
+          if (u && msg.sender_id !== u.id) markRead(u.id)
         })
       })
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'messages',
         filter: `conversation_id=eq.${convId}`,
-      }, payload => {
-        const updated = payload.new as Message
+      }, (payload: { new: Message }) => {
+        const updated = payload.new
         setMessages(prev => prev.map(m => m.id === updated.id ? updated : m))
       })
       .subscribe()
