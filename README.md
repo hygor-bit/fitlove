@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FITLOVE
 
-## Getting Started
+> "Evoluindo juntos todos os dias."
 
-First, run the development server:
+Plataforma fitness premium para casais — Next.js 16, TypeScript, Supabase, Framer Motion.
+
+---
+
+## Projeto Supabase
+
+- **URL:** `https://ecxinxxbeaspzfkgawbe.supabase.co`
+- **Painel:** https://supabase.com/dashboard/project/ecxinxxbeaspzfkgawbe
+
+---
+
+## PASSO 1 — Banco de dados
+
+### Execute o supabase-init.sql
+
+1. Acesse: https://supabase.com/dashboard/project/ecxinxxbeaspzfkgawbe/sql/new
+2. Copie todo o conteúdo do arquivo `supabase-init.sql`
+3. Cole no editor SQL e clique **Run**
+
+Isso cria automaticamente:
+- Todas as 11 tabelas
+- Todas as RLS policies
+- Bucket de Storage `fitlove`
+- Realtime para posts/likes/comentários
+- Trigger para auto-criar perfil no signup
+- Indexes de performance
+
+---
+
+## PASSO 2 — Autenticação Email
+
+1. Acesse: https://supabase.com/dashboard/project/ecxinxxbeaspzfkgawbe/auth/providers
+2. Em **Email**, certifique-se que está habilitado
+3. Opcionalmente desabilite "Confirm email" para testes
+
+---
+
+## PASSO 3 — Login Google (OAuth)
+
+1. Acesse o [Google Cloud Console](https://console.cloud.google.com)
+2. Crie ou abra um projeto
+3. Vá em **APIs & Services → Credentials**
+4. Clique **Create Credentials → OAuth 2.0 Client ID**
+5. Tipo: **Web application**
+6. Em **Authorized redirect URIs**, adicione:
+   ```
+   https://ecxinxxbeaspzfkgawbe.supabase.co/auth/v1/callback
+   ```
+7. Copie o **Client ID** e **Client Secret**
+8. No Supabase, acesse: https://supabase.com/dashboard/project/ecxinxxbeaspzfkgawbe/auth/providers
+9. Habilite **Google** e cole o Client ID e Client Secret
+10. Clique **Save**
+
+---
+
+## PASSO 4 — URLs de Redirect
+
+### Para desenvolvimento local:
+
+Acesse: https://supabase.com/dashboard/project/ecxinxxbeaspzfkgawbe/auth/url-configuration
+
+Adicione:
+- **Site URL:** `http://localhost:3000`
+- **Redirect URLs:** `http://localhost:3000/auth/callback`
+
+### Para produção (Vercel), adicione também:
+- **Site URL:** `https://SEU-APP.vercel.app`
+- **Redirect URLs:** `https://SEU-APP.vercel.app/auth/callback`
+
+---
+
+## PASSO 5 — Rodar localmente
 
 ```bash
+cd fitlove
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## PASSO 6 — Criar usuários (Hygor e Júlia)
 
-## Learn More
+1. Acesse http://localhost:3000/login
+2. Clique em **Criar conta** e cadastre `hygor@email.com`
+3. Repita para `julia@email.com`
+4. Faça login com cada um e acesse **Perfil**
+5. Use os **Presets Rápidos** para configurar as metas
 
-To learn more about Next.js, take a look at the following resources:
+**Metas do Hygor:**
+- 2750 kcal | 150g proteína | 400g carbs | 60g gordura | 3L água
+- Objetivo: Ganhar massa muscular
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Metas da Júlia:**
+- 1650 kcal | 140g proteína | 145g carbs | 55g gordura | 3L água
+- Objetivo: Perder gordura e definir
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## PASSO 7 — Deploy na Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Opção A: Via CLI
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install -g vercel
+vercel
+```
+
+### Opção B: Via painel Vercel
+
+1. Acesse https://vercel.com/new
+2. Importe o repositório GitHub
+3. Em **Environment Variables**, adicione:
+
+| Nome | Valor |
+|------|-------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://ecxinxxbeaspzfkgawbe.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_lRueNfJn5i38O2XJhG2xog_oXd_UgP0` |
+
+4. Clique **Deploy**
+5. Após o deploy, copie a URL (ex: `https://fitlove.vercel.app`)
+6. Volte ao Supabase → Auth → URL Configuration e adicione a URL de produção
+
+---
+
+## Stack
+
+| Tecnologia | Uso |
+|-----------|-----|
+| Next.js 16 | Framework React com App Router |
+| TypeScript | Tipagem estática |
+| TailwindCSS | Estilização + glassmorphism |
+| Framer Motion | Animações premium |
+| Supabase | Auth, Database, Storage, Realtime |
+| Recharts | Gráficos de estatísticas |
+| shadcn/ui | Componentes base |
+
+## Módulos
+
+| Rota | Descrição |
+|------|-----------|
+| `/` | Landing page premium |
+| `/login` | Login por email ou Google |
+| `/dashboard` | Ranking do casal + score + ações rápidas |
+| `/agua` | Tracker de hidratação animado |
+| `/treinos` | Log de treinos com 12 tipos |
+| `/nutricao` | Log de refeições com macros |
+| `/feed` | Feed estilo Threads (curtidas, comentários, realtime) |
+| `/mural` | Mensagens motivacionais entre o casal |
+| `/progresso` | Fotos antes/depois + medidas + comparador |
+| `/estatisticas` | 4 gráficos + heatmap de frequência |
+| `/perfil` | Metas personalizadas + presets Hygor/Júlia |
+
+## Sistema de Pontuação FITLOVE Score
+
+| Ação | Pontos |
+|------|--------|
+| Check-in diário | +5 |
+| Meta de água batida | +10 |
+| Treino registrado | +15 |
+| Meta calórica atingida | +10 |
+
+Ranking diário com 1o e 2o lugar exibido no dashboard.

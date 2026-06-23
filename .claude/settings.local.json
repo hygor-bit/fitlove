@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx create-next-app@latest fitlove --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)"
+      "Bash(npx create-next-app@latest fitlove --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "PowerShell(npm install @supabase/supabase-js @supabase/ssr framer-motion recharts lucide-react date-fns clsx tailwind-merge class-variance-authority @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs @radix-ui/react-progress @radix-ui/react-avatar @radix-ui/react-slot @radix-ui/react-label @radix-ui/react-select @radix-ui/react-scroll-area @radix-ui/react-separator @radix-ui/react-toast @radix-ui/react-tooltip @radix-ui/react-popover @radix-ui/react-alert-dialog react-hook-form @hookform/resolvers zod 2>&1)",
+      "PowerShell(cd C:\\\\Users\\\\PC\\\\fitlove; $proc = Start-Process \"node_modules\\\\.bin\\\\next\" -ArgumentList \"dev\",\"--port\",\"3000\" -PassThru -WindowStyle Hidden; Start-Sleep 8; Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5 | Select-Object StatusCode; $proc.Id)",
+      "Bash(powershell -command \"Expand-Archive -Path 'C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io.zip' -DestinationPath 'C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io' -Force\")",
+      "Read(//c/Users/PC/Downloads/**)",
+      "Bash(cp \"C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io\\\\android-chrome-192x192.png\" \"C:\\\\Users\\\\PC\\\\fitlove\\\\public\\\\icons\\\\icon-192.png\")",
+      "Bash(cp \"C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io\\\\android-chrome-512x512.png\" \"C:\\\\Users\\\\PC\\\\fitlove\\\\public\\\\icons\\\\icon-512.png\")",
+      "Bash(cp \"C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io\\\\apple-touch-icon.png\" \"C:\\\\Users\\\\PC\\\\fitlove\\\\public\\\\icons\\\\apple-touch-icon.png\")",
+      "Bash(cp \"C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io\\\\favicon.ico\" \"C:\\\\Users\\\\PC\\\\fitlove\\\\public\\\\favicon.ico\")",
+      "Bash(cp \"C:\\\\Users\\\\PC\\\\Downloads\\\\favicon_io\\\\favicon-32x32.png\" \"C:\\\\Users\\\\PC\\\\fitlove\\\\public\\\\favicon-32x32.png\")",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
