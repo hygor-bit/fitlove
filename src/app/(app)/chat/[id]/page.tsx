@@ -57,7 +57,7 @@ export default function ConversationPage() {
     ])
 
     const profileMap = new Map((profiles || []).map((p: Profile) => [p.user_id, p]))
-    const me = profileMap.get(user.id)
+    const me = profileMap.get(user.id) as Profile | undefined
     if (me) setMyProfile(me)
 
     if (conv) {
