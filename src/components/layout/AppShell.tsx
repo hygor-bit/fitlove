@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Rss, Dumbbell, UtensilsCrossed, Droplets,
-  TrendingUp, BarChart3, Heart, User, LogOut, Menu, X, ChevronRight
+  TrendingUp, BarChart3, Heart, User, LogOut, Menu, X, ChevronRight, MessageCircle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/feed', icon: Rss, label: 'Feed' },
+  { href: '/chat', icon: MessageCircle, label: 'Chat' },
   { href: '/treinos', icon: Dumbbell, label: 'Treinos' },
   { href: '/nutricao', icon: UtensilsCrossed, label: 'Nutricao' },
   { href: '/agua', icon: Droplets, label: 'Agua' },
@@ -26,7 +27,7 @@ const navItems = [
 const bottomNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   { href: '/feed', icon: Rss, label: 'Feed' },
-  { href: '/treinos', icon: Dumbbell, label: 'Treinos' },
+  { href: '/chat', icon: MessageCircle, label: 'Chat' },
   { href: '/agua', icon: Droplets, label: 'Agua' },
   { href: '/perfil', icon: User, label: 'Perfil' },
 ]
