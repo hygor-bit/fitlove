@@ -65,7 +65,15 @@ export default function DashboardPage() {
     setLoading(false)
   }, [supabase, today])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => {
+    loadData()
+    window.addEventListener('focus', loadData)
+    const interval = setInterval(loadData, 30000)
+    return () => {
+      window.removeEventListener('focus', loadData)
+      clearInterval(interval)
+    }
+  }, [loadData])
 
   async function doCheckin() {
     const { data: { user } } = await supabase.auth.getUser()
