@@ -11,6 +11,7 @@ export interface Profile {
   carbs_goal: number
   fat_goal: number
   water_goal: number
+  partner_id?: string
   created_at: string
   updated_at: string
 }
