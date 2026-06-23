@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Rss, Dumbbell, UtensilsCrossed, Droplets,
-  TrendingUp, BarChart3, Heart, User, LogOut, Menu, X, ChevronRight, MessageCircle
+  TrendingUp, BarChart3, Heart, User, LogOut, Menu, X, ChevronRight, MessageCircle, Bell
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -34,9 +34,27 @@ const bottomNavItems = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showNotifBanner, setShowNotifBanner] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+    if (Notification.permission === 'default') {
+      setShowNotifBanner(true)
+    }
+  }, [])
+
+  async function requestNotifPermission() {
+    const result = await Notification.requestPermission()
+    if (result === 'granted') {
+      setShowNotifBanner(false)
+      new Notification('FITLOVE', { body: 'Notificacoes ativadas!', icon: '/icons/icon-192.png' })
+    } else {
+      setShowNotifBanner(false)
+    }
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -154,6 +172,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <User className="w-5 h-5" />
           </Link>
         </header>
+
+        {/* Notification permission banner */}
+        <AnimatePresence>
+          {showNotifBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -40 }}
+              className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-b border-pink-500/20"
+            >
+              <Bell className="w-4 h-4 text-pink-400 flex-shrink-0" />
+              <p className="text-white/70 text-xs flex-1">Ative as notificacoes para nao perder mensagens e posts do casal.</p>
+              <button
+                onClick={requestNotifPermission}
+                className="love-gradient text-white text-xs px-3 py-1.5 rounded-lg font-medium flex-shrink-0"
+              >
+                Ativar
+              </button>
+              <button onClick={() => setShowNotifBanner(false)} className="text-white/30 hover:text-white/60 flex-shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Page content — pb-24 on mobile to clear bottom nav */}
         <motion.main
